@@ -5,7 +5,7 @@ Command line interface to [LastPass.com](https://lastpass.com/).
 
 ## Operating System Support
 
-`lpass` is designed to run on GNU/Linux, Cygwin and Mac OS X.
+`lpass` is designed to run on GNU/Linux, Cygwin and Mac OS X. This is a port for Termux. The upstream lastpass repo is here: https://github.com/lastpass/lastpass-cli
 
 ## Dependencies
 
@@ -16,128 +16,9 @@ Command line interface to [LastPass.com](https://lastpass.com/).
 * [AsciiDoc](http://www.methods.co.nz/asciidoc/) (build-time documentation generation only)
 * [xclip](http://sourceforge.net/projects/xclip/), [xsel](http://www.vergenet.net/~conrad/software/xsel/), [pbcopy](https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/man1/pbcopy.1.html), or [putclip from cygutils-extra](https://cygwin.com/cgi-bin2/package-grep.cgi?grep=cygutils-extra) for clipboard support (optional)
 
-### Installing on Linux
-#### Arch
-* Binary packages are available in the [Arch User Repository (AUR)](https://aur.archlinux.org/packages.php?O=0&L=0&C=0&K=lastpass-cli). Information about installing packages from the AUR [can be found on the Arch wiki](https://wiki.archlinux.org/index.php/Arch_User_Repository#Installing_packages).
+## Termux
 
-#### Fedora
-
-* Packages are available in Fedora 22 and later.
-
-```
-sudo dnf install lastpass-cli
-```
-
-#### Redhat/Centos
-
-* Packages are available in [EPEL](https://fedoraproject.org/wiki/EPEL) for RHEL/CentOS 7 and later.
-
-```
-sudo yum install lastpass-cli
-```
-
-* For older versions: Install the needed build dependencies, and then follow instructions in
-  the 'Building' section.
-
-```
-sudo yum install openssl libcurl libxml2 pinentry xclip openssl-devel libxml2-devel libcurl-devel
-```
-
-
-#### Debian/Ubuntu
-* Install the needed build dependencies, and then follow instructions in
-  the 'Building' section.
-
-* For Debian:
-
-```
-sudo apt-get install openssl libcurl3 libxml2 libssl-dev libxml2-dev libcurl4-openssl-dev pinentry-curses xclip
-```
-
-* For Ubuntu:
-
-```
-sudo apt-get install openssl libcurl4-openssl-dev libxml2 libssl-dev libxml2-dev pinentry-curses xclip
-```
-
-#### Gentoo
-* Install the package:
-
-```
-sudo emerge lastpass-cli
-```
-
-#### Other Linux Distros
-Install the packages listed in the Dependencies section of this document,
-and then follow instructions in the 'Building' section.
-
-### Installing on OS X
-
-#### With [Homebrew](http://brew.sh/) (easiest)
-* Install Homebrew, if necessary.
-* Update Homebrew's local formula cache:
-
-```
-brew update
-```
-
-* Install the lastpass-cli formula:
-
-```
-brew install lastpass-cli --with-pinentry
-```
-
-Alternatively, if you want to install the documentation as well:
-
-```
-brew install lastpass-cli --with-pinentry --with-doc
-```
-
-#### With [MacPorts](https://www.macports.org/)
-* [Install MacPorts](https://www.macports.org/install.php), if necessary.
-* Update MacPorts' local ports tree:
-
-```
-sudo port selfupdate
-```
-
-* Install the lastpass-cli port:
-
-```
-sudo port install lastpass-cli
-```
-
-* Optionally install the documentation:
-
-```
-sudo port install lastpass-cli-doc
-```
-
-#### Manually
-Install the packages listed in the Dependencies section of this document,
-and then follow instructions in the 'Building' section.
-
-### Installing on FreeBSD
-* Install the binary package:
-
-```
-sudo pkg install security/lastpass-cli
-```
-
-* Or build the port yourself:
-
-```
-sudo make -C /usr/ports/security/lastpass-cli all install clean
-```
-
-### Installing on Cygwin
-* Install [apt-cyg](https://github.com/transcode-open/apt-cyg)
-* Using apt-cyg, install the needed build dependencies, and then follow
-  instructions in the 'Building' section.
-
-```
-apt-cyg install wget make gcc-core openssl-devel libcurl-devel libxml2-devel libiconv-devel cygutils-extra
-```
+This fork of the lastpass-cli repo is tweaked to install on the very awesome Termux Android emulator https://termux.com
 
 ## Building
 
@@ -145,9 +26,7 @@ apt-cyg install wget make gcc-core openssl-devel libcurl-devel libxml2-devel lib
 
 ## Installing
 
-    $ sudo make install
-
-These environment variables can be passed to make to do the right thing: `PREFIX`, `DESTDIR`, `BINDIR`, `LIBDIR`, `MANDIR`.
+    $ make install
 
 ## Running
 
@@ -161,11 +40,4 @@ Otherwise, from the build directory:
 
 ## Documentation
 
-The `install-doc` target builds and installs the documentation.
-It requires AsciiDoc as a prerequisite.
-
-    $ sudo make install-doc
-
-Once installed,
-
-    $ man lpass
+The lastpass-cli documentation is built using asciidoc which is not available in Termux. For documentation refer to the generated man page by Lastpass: https://lastpass.github.io/lastpass-cli/lpass.1.html
