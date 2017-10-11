@@ -169,7 +169,7 @@ static void agent_run(unsigned const char key[KDF_HASH_LEN])
 
 	unlink(path);
 
-	if (bind(fd, (struct sockaddr *)&sa, SUN_LEN(&sa)) < 0 || listen(fd, 16) < 0) {
+	if (bind(fd, (struct sockaddr *)&sa, sizeof(struct sockaddr_un)) < 0 || listen(fd, 16) < 0) {
 		listenfd = errno;
 		close(fd);
 		unlink(path);
@@ -218,7 +218,7 @@ void agent_kill(void)
 	sa.sun_family = AF_UNIX;
 	strlcpy(sa.sun_path, path, sizeof(sa.sun_path));
 
-	if (connect(fd, (struct sockaddr *)&sa, SUN_LEN(&sa)) < 0)
+	if (connect(fd, (struct sockaddr *)&sa, sizeof(struct sockaddr_un)) < 0)
 		goto out;
 
 #if SOCKET_SEND_PID == 1
@@ -252,7 +252,7 @@ bool agent_ask(unsigned char key[KDF_HASH_LEN])
 	sa.sun_family = AF_UNIX;
 	strlcpy(sa.sun_path, path, sizeof(sa.sun_path));
 
-	ret = connect(fd, (struct sockaddr *)&sa, SUN_LEN(&sa)) >= 0;
+	ret = connect(fd, (struct sockaddr *)&sa, sizeof(struct sockaddr_un)) >= 0;
 	if (!ret)
 		goto out;
 
