@@ -49,7 +49,7 @@
 #if defined(__linux__) || defined(__CYGWIN__)
 static char *shared_memory_dir(void)
 {
-	return xstrdup("/dev/shm");
+	return xstrdup(getenv("TMPDIR"));
 }
 #elif defined(__APPLE__) && defined(__MACH__)
 static const char *shared_memory_dir_mount =
@@ -507,8 +507,10 @@ int edit_account(struct session *session,
 
 		tmpdir = shared_memory_dir();
 		xstrappend(&tmpdir, "/lpass.XXXXXX");
-		if (!mkdtemp(tmpdir))
+		if (!mkdtemp(tmpdir)) {
+			printf("Using %s\n", tmpdir);
 			die_errno("mkdtemp");
+		}
 		xasprintf(&tmppath, "%s/lpass.XXXXXX", tmpdir);
 		tmpfd = mkstemp(tmppath);
 		if (tmpfd < 0)
