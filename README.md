@@ -1,5 +1,5 @@
 # LastPass CLI
-#### (c) 2014-2016 LastPass.
+#### (c) 2014-2017 LastPass.
 
 Command line interface to [LastPass.com](https://lastpass.com/).
 
@@ -23,6 +23,9 @@ This fork of the lastpass-cli repo is tweaked to install on the very awesome Ter
 ## Building
 
     $ make
+
+Under the covers, make invokes cmake in a build directory; you may also use
+cmake directly if you need more control over the build process.
 
 ## Installing
 

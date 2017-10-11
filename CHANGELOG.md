@@ -1,3 +1,57 @@
+# Version 1.2.1
+ * Bugfix: fix regression with ```lpass show``` not displaying all fields
+   for secure notes
+ * Use sysctl instead of procfs for pid-to-cmd on some versions of BSD,
+   from Thomas Hurst
+ * Build: fix build for test binaries on OpenBSD, from Björn Ketelaars
+
+# Version 1.2.0
+ * ```lpass show``` now supports new-style multiline ssh keys
+ * ```lpass export``` now supports --fields=FIELDLIST argument to
+   control output, with patches from Kyle Burton
+ * ```lpass ls``` now always shows empty shared folders
+ * ```lpass edit``` can now set the 'master password reprompt' field in sites
+ * ```lpass share create``` now shows the created share name
+ * Bugfix: crash in `lpass show` fixed by Kyle Burton
+ * build fixes for termux and documentation updates, from Christian Rondeau
+ * documentation updates for Ubuntu from Craig Menning and Glenn Oppegard
+ * Test suite now included covering basic operations
+
+# Version 1.1.2
+ * Bugfix: crash with ```lpass logout --color=never``` fixed
+ * Bugfix: ```lpass add``` with secure notes works again
+ * Bugfix: sort order in ```lpass ls``` is now consistent whether or not
+   colors are used
+ * Documentation has been enhanced to describe aliases and more options,
+   with patches by Eric B. Hymowitz.
+ * Build: debian package fixed for rebuild issues and missing build
+   dependencies
+
+# Version 1.1.1
+ * Bugfix: fix crash in ```lpass show``` for secure notes without attachments
+ * Build: fix build on OpenBSD
+ * Build: fix build when using LibreSSL
+
+# Version 1.1.0
+ * New command ```lpass import``` can import an existing csv file (or output
+   from ```lpass export``` into the vault
+ * ```lpass show``` and ```lpass ls``` learned a ```--format``` argument
+   to enable user-specified printf-style formats
+ * Bash completions will now complete field names if ```--field``` is
+   specified after the account name
+ * Build: cmake now used for building, by Filippo Cucchetto and
+   with fixes by Eli Schwartz
+ * Build: lpass has been updated to work with OpenSSL 1.1; please note
+   that libcurl-openssl must also be linked against the same version
+   in order to avoid mysterious segfaults
+ * Bugfix: crash in ```lpass ls -l``` with no last_modified_gmt fixed
+ * Bugfix: secure notes editing with "Name" fields now works properly
+ * Bugfix: editing secure note names now works (github #106)
+ * Bugfix: lpass-created server secure notes are now compatible with the plugin
+ * Bugfix: ```generate``` now uses all defined characters, by Ignat Korchagin
+ * Bugfix: ```lpass show``` for ssh-key secure notes no longer corrupts
+   password-protected ssh keys (github #232)
+
 # Version 1.0.0
  * New command ```lpass status``` shows whether or not the user is logged
    in with agent, from Nick Knudson

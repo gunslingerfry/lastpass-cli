@@ -1,7 +1,7 @@
 /*
  * command to show the contents of a vault entry
  *
- * Copyright (C) 2014-2016 LastPass.
+ * Copyright (C) 2014-2017 LastPass.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,6 +34,7 @@
  * See LICENSE.OpenSSL for more details regarding this exception.
  */
 #include "cmd.h"
+#include "cipher.h"
 #include "util.h"
 #include "config.h"
 #include "terminal.h"
@@ -41,10 +42,12 @@
 #include "kdf.h"
 #include "endpoints.h"
 #include "clipboard.h"
+#include "format.h"
 #include <getopt.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <ctype.h>
 
 /*
  * If a secure note field contains ascii armor, its newlines will
@@ -80,9 +83,98 @@ static char *fix_ascii_armor(char *armor_str)
 	while ((ptr = strchr(ptr, ' ')) != NULL) {
 		if (ptr >= start_trailer)
 			break;
+		/* don't modify spaces after headers, e.g. encrypted keys */
+		if (ptr[-1] == ':') {
+			ptr++;
+			continue;
+		}
 		*ptr = '\n';
 	}
 	return armor_str;
+}
+
+static char *attachment_filename(struct account *account,
+				 struct attach *attach)
+{
+	_cleanup_free_ unsigned char *key_bin = NULL;
+
+	if (!attach->filename ||
+	    !account->attachkey ||
+	    strlen(account->attachkey) != KDF_HASH_LEN * 2 ||
+	    hex_to_bytes(account->attachkey, &key_bin)) {
+		return xstrdup("unknown");
+	}
+
+	return cipher_aes_decrypt_base64(attach->filename, key_bin);
+}
+
+static bool attachment_is_binary(unsigned char *data, size_t len)
+{
+	size_t i;
+	for (i = 0; i < min(len, 100); i++) {
+		if (!isprint(data[i]))
+			return true;
+	}
+	return false;
+}
+
+static void show_attachment(const struct session *session,
+			    struct account *account,
+			    struct attach *attach)
+{
+	_cleanup_free_ unsigned char *key_bin = NULL;
+	_cleanup_free_ char *result = NULL;
+	_cleanup_free_ char *filename = NULL;
+	int ret;
+	char opt;
+	char *ptext;
+	size_t len;
+	char *shareid = NULL;
+	unsigned char *bytes = NULL;
+	FILE *fp = stdout;
+
+	if (!account->attachkey || strlen(account->attachkey) != KDF_HASH_LEN * 2)
+		die("Missing attach key for account %s\n", account->name);
+
+	if (hex_to_bytes(account->attachkey, &key_bin))
+		die("Invalid attach key for account %s\n", account->name);
+
+	if (account->share != NULL)
+		shareid = account->share->id;
+
+	filename = attachment_filename(account, attach);
+
+	ret = lastpass_load_attachment(session, shareid, attach, &result);
+	if (ret)
+		die("Could not load attachment %s\n", attach->id);
+
+	ptext = cipher_aes_decrypt_base64(result, key_bin);
+	if (!ptext)
+		die("Unable to decrypt attachment %s\n", attach->id);
+
+	len = unbase64(ptext, &bytes);
+
+	if (attachment_is_binary(bytes, len)) {
+		opt = ask_options("yns", 's',
+			    "\"%s\" is a binary file, print it anyway (or save)? ",
+			    filename);
+		switch (opt) {
+		case 'n':
+			return;
+		case 's':
+			fp = fopen(filename, "wb");
+			if (!fp)
+				die("Unable to open %s\n", filename);
+			break;
+		default:
+			break;
+		}
+	}
+	len = fwrite(bytes, 1, len, fp);
+	if (fp != stdout) {
+		fprintf(stderr, TERMINAL_FG_GREEN "Wrote %zu bytes to \"%s\"\n" TERMINAL_RESET, len, filename);
+		fclose(fp);
+	}
 }
 
 static char *pretty_field_value(struct field *field)
@@ -97,15 +189,56 @@ static char *pretty_field_value(struct field *field)
 	return value;
 }
 
-static void print_header(struct account *found)
+static void print_header(char *title_format, struct account *found)
 {
-	if (found->share)
-		terminal_printf(TERMINAL_FG_CYAN "%s/" TERMINAL_RESET, found->share->name);
-	if (strlen(found->group))
-		terminal_printf(TERMINAL_FG_BLUE "%s/" TERMINAL_BOLD "%s" TERMINAL_RESET TERMINAL_FG_GREEN " [id: %s]" TERMINAL_RESET "\n", found->group, found->name, found->id);
-	else
-		terminal_printf(TERMINAL_FG_BLUE TERMINAL_BOLD "%s" TERMINAL_RESET TERMINAL_FG_GREEN " [id: %s]" TERMINAL_RESET "\n", found->name, found->id);
+	struct buffer buf;
+
+	buffer_init(&buf);
+	format_account(&buf, title_format, found);
+	terminal_printf("%s\n", buf.bytes);
+	free(buf.bytes);
 }
+
+static void print_field(char *field_format, struct account *account,
+			char *name, char *value)
+{
+	struct buffer buf;
+
+	buffer_init(&buf);
+	format_field(&buf, field_format, account, name, value);
+	terminal_printf("%s\n", buf.bytes);
+	free(buf.bytes);
+}
+
+static void print_attachment(char *field_format,
+			     struct account *account,
+			     struct attach *attach)
+{
+	_cleanup_free_ char *attach_id = NULL;
+	_cleanup_free_ char *filename = NULL;
+
+	xasprintf(&attach_id, "att-%s", attach->id);
+	filename = attachment_filename(account, attach);
+
+	print_field(field_format, account, attach_id, filename);
+}
+
+static struct attach *find_attachment(struct account *account,
+				      const char *attach_id)
+{
+	struct attach *attach = NULL;
+
+	/* trim 'att-' off id if someone passed it */
+	if (!strncmp(attach_id, "att-", 4))
+		attach_id += 4;
+
+	list_for_each_entry(attach, &account->attach_head, list) {
+		if (!strcmp(attach->id, attach_id))
+			return attach;
+	}
+	return NULL;
+}
+
 
 int cmd_show(int argc, char **argv)
 {
@@ -123,17 +256,20 @@ int cmd_show(int argc, char **argv)
 		{"id", no_argument, NULL, 'I'},
 		{"name", no_argument, NULL, 'N'},
 		{"notes", no_argument, NULL, 'O'},
+		{"attach", required_argument, NULL, 'a'},
 		{"clip", no_argument, NULL, 'c'},
 		{"color", required_argument, NULL, 'C'},
 		{"basic-regexp", no_argument, NULL, 'G'},
 		{"fixed-strings", no_argument, NULL, 'F'},
 		{"expand-multi", no_argument, NULL, 'x'},
+		{"title-format", required_argument, NULL, 't'},
+		{"format", required_argument, NULL, 'o'},
 		{0, 0, 0, 0}
 	};
 
 	int option;
 	int option_index;
-	enum { ALL, USERNAME, PASSWORD, URL, FIELD, ID, NAME, NOTES } choice = ALL;
+	enum { ALL, USERNAME, PASSWORD, URL, FIELD, ID, NAME, NOTES, ATTACH } choice = ALL;
 	_cleanup_free_ char *field = NULL;
 	struct account *notes_expansion = NULL;
 	struct field *found_field;
@@ -146,8 +282,13 @@ int cmd_show(int argc, char **argv)
 	struct list_head matches, potential_set;
 	enum search_type search = SEARCH_EXACT_MATCH;
 	int fields = ACCOUNT_NAME | ACCOUNT_ID | ACCOUNT_FULLNAME;
+	struct attach *attach;
 
-	while ((option = getopt_long(argc, argv, "cupFGx", long_options, &option_index)) != -1) {
+	_cleanup_free_ char *title_format = NULL;
+	_cleanup_free_ char *field_format = NULL;
+	_cleanup_free_ char *attach_id = NULL;
+
+	while ((option = getopt_long(argc, argv, "cupFGxto", long_options, &option_index)) != -1) {
 		switch (option) {
 			case 'S':
 				sync = parse_sync_string(optarg);
@@ -180,6 +321,10 @@ int cmd_show(int argc, char **argv)
 			case 'N':
 				choice = NAME;
 				break;
+			case 'a':
+				choice = ATTACH;
+				attach_id = xstrdup(optarg);
+				break;
 			case 'O':
 				choice = NOTES;
 				break;
@@ -192,6 +337,12 @@ int cmd_show(int argc, char **argv)
 				break;
 			case 'x':
 				expand_multi = true;
+				break;
+			case 'o':
+				field_format = xstrdup(optarg);
+				break;
+			case 't':
+				title_format = xstrdup(optarg);
 				break;
 			case '?':
 			default:
@@ -214,6 +365,18 @@ int cmd_show(int argc, char **argv)
 
 	INIT_LIST_HEAD(&matches);
 	INIT_LIST_HEAD(&potential_set);
+
+	if (!title_format) {
+		title_format = xstrdup(
+			TERMINAL_FG_CYAN "%/as" TERMINAL_RESET
+			TERMINAL_FG_BLUE "%/ag"
+			TERMINAL_BOLD "%an" TERMINAL_RESET
+			TERMINAL_FG_GREEN " [id: %ai]" TERMINAL_RESET);
+	}
+	if (!field_format) {
+		field_format = xstrdup(
+			TERMINAL_FG_YELLOW "%fn" TERMINAL_RESET ": %fv");
+	}
 
 	list_for_each_entry(account, &blob->account_head, list)
 		list_add(&account->match_list, &potential_set);
@@ -244,7 +407,7 @@ int cmd_show(int argc, char **argv)
 		/* Multiple matches; dump the ids and exit */
 		terminal_printf(TERMINAL_FG_YELLOW TERMINAL_BOLD "Multiple matches found.\n");
 		list_for_each_entry(found, &matches, match_list)
-			print_header(found);
+			print_header(title_format, found);
 		exit(EXIT_SUCCESS);
 	}
 
@@ -295,30 +458,41 @@ int cmd_show(int argc, char **argv)
 			value = xstrdup(found->name);
 		else if (choice == NOTES)
 			value = xstrdup(found->note);
+		else if (choice == ATTACH) {
+			struct attach *attach = find_attachment(found, attach_id);
+			if (!attach)
+				die("Could not find specified attachment '%s'.", attach_id);
+			show_attachment(session, found, attach);
+		}
 
 		if (choice == ALL) {
-			print_header(found);
+			print_header(title_format, found);
 
 			if (strlen(found->username))
-				terminal_printf(TERMINAL_FG_YELLOW "%s" TERMINAL_RESET ": %s\n", "Username", found->username);
+				print_field(field_format, found, "Username", found->username);
 			if (strlen(found->password))
-				terminal_printf(TERMINAL_FG_YELLOW "%s" TERMINAL_RESET ": %s\n", "Password", found->password);
+				print_field(field_format, found, "Password", found->password);
 			if (strlen(found->url) && strcmp(found->url, "http://"))
-				terminal_printf(TERMINAL_FG_YELLOW "%s" TERMINAL_RESET ": %s\n", "URL", found->url);
+				print_field(field_format, found, "URL", found->url);
 			if (found->is_app) {
 				app = account_to_app(found);
 				if (strlen(app->appname))
-					terminal_printf(TERMINAL_FG_YELLOW "%s" TERMINAL_RESET ": %s\n", "Application", app->appname);
+					print_field(field_format, found, "Application", app->appname);
 			}
 
 			list_for_each_entry(found_field, &found->field_head, list) {
 				pretty_field = pretty_field_value(found_field);
-				terminal_printf(TERMINAL_FG_YELLOW "%s" TERMINAL_RESET ": %s\n", found_field->name, pretty_field);
+				print_field(field_format, found, found_field->name, pretty_field);
 				free(pretty_field);
 			}
+			list_for_each_entry(attach, &found->attach_head, list) {
+				print_attachment(field_format, found, attach);
+			}
+			if (found->pwprotect)
+				print_field(field_format, found, "Reprompt", "Yes");
 			if (strlen(found->note))
-				terminal_printf(TERMINAL_FG_YELLOW "%s" TERMINAL_RESET ":\n%s\n", "Notes", found->note);
-		} else {
+				print_field(field_format, found, "Notes", found->note);
+		} else if (choice != ATTACH) {
 			if (!value)
 				die("Programming error.");
 			printf("%s", value);
