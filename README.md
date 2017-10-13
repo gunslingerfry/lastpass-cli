@@ -13,8 +13,7 @@ Command line interface to [LastPass.com](https://lastpass.com/).
 * [libcurl](http://curl.haxx.se/)
 * [libxml2](http://xmlsoft.org/)
 * [pinentry](https://www.gnupg.org/related_software/pinentry/index.en.html) (optional)
-* [AsciiDoc](http://www.methods.co.nz/asciidoc/) (build-time documentation generation only)
-* [xclip](http://sourceforge.net/projects/xclip/), [xsel](http://www.vergenet.net/~conrad/software/xsel/), [pbcopy](https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/man1/pbcopy.1.html), or [putclip from cygutils-extra](https://cygwin.com/cgi-bin2/package-grep.cgi?grep=cygutils-extra) for clipboard support (optional)
+* [Termux:API](https://termux.com/add-on-api.html) for clipboard support (optional)
 
 ## Termux
 

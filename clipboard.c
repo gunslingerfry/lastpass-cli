@@ -91,11 +91,8 @@ void clipboard_open(void)
 			exec_command(clipboard_command);
 			die("Unable to copy contents to clipboard. Please make sure you have `xclip`, `xsel`, `pbcopy`, or `putclip` installed.");
 		} else {
-			execlp("xclip", "xclip", "-selection", "clipboard", "-in", NULL);
-			execlp("xsel", "xsel", "--clipboard", "--input", NULL);
-			execlp("pbcopy", "pbcopy", NULL);
-			execlp("putclip", "putclip", "--dos", NULL);
-			die("Unable to copy contents to clipboard. Please make sure you have `xclip`, `xsel`, `pbcopy`, or `putclip` installed.");
+			execlp("termux-clipboard-set", "termux-clipboard-set", NULL);
+			die("Unable to copy contents to clipboard. Please make sure you have termux-clipboard-set installed.");
 		}
 	}
 	close(pipefd[0]);
