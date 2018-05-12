@@ -1,7 +1,7 @@
 /*
  * common routines for editing / adding accounts
  *
- * Copyright (C) 2014-2017 LastPass.
+ * Copyright (C) 2014-2018 LastPass.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -156,6 +156,7 @@ static void assign_account_value(struct account *account,
 	assign_if("Username", username);
 	assign_if("Password", password);
 	assign_if("Application", appname);
+	assign_if("Notes", note);
 
 	if (!strcmp(label, "Reprompt")) {
 		account->pwprotect = !strcmp(trim(value), "Yes");
@@ -528,9 +529,9 @@ int edit_account(struct session *session,
 		}
 		fclose(tmpfile);
 
-		xasprintf(&editcmd, "${EDITOR:-vi} '%s'", tmppath);
+		xasprintf(&editcmd, "${VISUAL:-${EDITOR:-vi}} '%s'", tmppath);
 		if (system(editcmd) < 0)
-			die_unlink_errno("system($EDITOR)", tmppath, tmpdir);
+			die_unlink_errno("system($VISUAL)", tmppath, tmpdir);
 
 		tmpfile = fopen(tmppath, "r");
 	} else

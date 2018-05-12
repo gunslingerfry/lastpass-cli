@@ -35,6 +35,28 @@ __EOM__
 	assert_str_eq "$(lpass show --sync=no --password $name)" "$password"
 }
 
+function test_add_site_note
+{
+	login || return 1
+	local name="test-add-site-note"
+	local url="https://example.com"
+	local username="user27"
+	local password="999999999"
+	local notes="here are some notes!!"
+
+	cat<<__EOM__ | lpass add --sync=no --non-interactive $name
+Name: $name
+URL: $url
+Username: $username
+Password: $password
+Notes:
+$notes
+__EOM__
+	assertz $? || return 1
+
+	assert_str_eq "$(lpass show --sync=no --note $name)" "$notes"
+}
+
 function test_add_note
 {
 	login || return 1
@@ -49,14 +71,14 @@ __EOM__
 	assert_str_eq "$(lpass show --sync=no --field=Number $name)" "000-00-0000"
 }
 
-function test_add_note_with_notes
+function test_add_note_with_field
 {
 	login || return 1
 	local name="test-add-note-with-notes"
 	cat<<__EOM__ | lpass add --sync=no --note-type=ssn --non-interactive $name
 Name: $name
 Number: 000-00-0000
-Note: This is my SSN
+Field: This is my SSN
 NoteType: Social Security
 __EOM__
 	assertz $? || return 1
@@ -202,6 +224,29 @@ Password: test-account-password
 URL: https://test-url.example.com/
 __EOM__
 	local out=$(lpass show --sync=no test-account)
+	assert_str_eq "$expected" "$out"
+}
+
+function test_show_json
+{
+	login || return 1
+	read -r -d '' expected <<__EOM__
+[
+  {
+    "id": "0001",
+    "name": "test-account",
+    "fullname": "test-group/test-account",
+    "username": "xyz@example.com",
+    "password": "test-account-password",
+    "last_modified_gmt": "skipped",
+    "last_touch": "skipped",
+    "group": "test-group",
+    "url": "https://test-url.example.com/",
+    "note": ""
+  }
+]
+__EOM__
+	local out=$(lpass show --sync=no --json test-account)
 	assert_str_eq "$expected" "$out"
 }
 

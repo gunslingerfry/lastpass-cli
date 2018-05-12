@@ -24,7 +24,7 @@ several subcommands:
  lpass *login* [--trust] [--plaintext-key [--force, -f]] [--color=auto|never|always] USERNAME
  lpass *logout* [--force, -f] [--color=auto|never|always]
  lpass *passwd*
- lpass *show* [--sync=auto|now|no] [--clip, -c] [--expand-multi, -x] [--all|--username|--password|--url|--notes|--field=FIELD|--id|--name|--attach=ATTACHID] [--basic-regexp, -G|--fixed-strings, -F] [--color=auto|never|always] {NAME|UNIQUEID}*
+ lpass *show* [--sync=auto|now|no] [--clip, -c] [--quiet, -q] [--expand-multi, -x] [--json, -j] [--all|--username|--password|--url|--notes|--field=FIELD|--id|--name|--attach=ATTACHID] [--basic-regexp, -G|--fixed-strings, -F] [--color=auto|never|always] {NAME|UNIQUEID}*
  lpass *ls* [--sync=auto|now|no] [--long, -l] [-m] [-u] [--color=auto|never|always] [GROUP]
  lpass *mv* [--sync=auto|now|no] [--color=auto|never|always] {UNIQUENAME|UNIQUEID} GROUP
  lpass *add* [--sync=auto|now|no] [--non-interactive] {--name|--username, -u|--password, -p|--url|--notes|--field=FIELD|--note-type=NOTETYPE} [--color=auto|never|always] {NAME|UNIQUEID}
@@ -34,7 +34,7 @@ several subcommands:
  lpass *rm* [--sync=auto|now|no] [--color=auto|never|always] {UNIQUENAME|UNIQUEID}
  lpass *status* [--quiet, -q] [--color=auto|never|always]
  lpass *sync* [--background, -b] [--color=auto|never|always]
- lpass *import* [--sync=auto|now|no] [FILENAME]
+ lpass *import* [--sync=auto|now|no] [--keep-dupes] [FILENAME]
  lpass *export* [--sync=auto|now|no] [--color=auto|never|always] [--fields=FIELDLIST]
  lpass *share* *userls* SHARE
  lpass *share* *useradd* [--read-only=[true|false]] [--hidden=[true|false]] [--admin=[true|false]] SHARE USERNAME
@@ -77,8 +77,11 @@ variable 'LPASS_AGENT_DISABLE' is set to 1, the agent will not be used.
 
 Password Entry
 ~~~~~~~~~~~~~~
-If available, the *pinentry* program, part of *gpg2*(1), may be used for inputting
-passwords if it is installed. If unavailable, or if the 'LPASS_DISABLE_PINENTRY'
+The *pinentry* program, part of *gpg2*(1), may be used for inputting
+passwords if it is installed. A custom path to the *pinentry* program can be
+provided by the 'LPASS_PINENTRY' environment variable.
+
+If *pinentry* program is unavailable, or if the 'LPASS_DISABLE_PINENTRY'
 environment variable is set to 1, passwords will be read from standard input and a
 prompt will be displayed on standard error.
 
@@ -144,6 +147,9 @@ The 'ls' subcommand will list names in groups in a tree structure. If
 the '--long' or '-l' option is set, then also list the last modification
 time.  The '-u' option may be passed to show the last use (last touch) time
 instead, if available. Both times are in GMT.
+
+Passing '--json' to 'show' will generate json output instead of
+human-readable text.
 
 In addition to using the built-in formats, both 'show' and 'ls' subcommands
 support printf-style format strings by using the '--format' option with
@@ -279,6 +285,7 @@ in the section above:
 * 'LPASS_AUTO_SYNC_TIME'
 * 'LPASS_AGENT_TIMEOUT'
 * 'LPASS_AGENT_DISABLE'
+* 'LPASS_PINENTRY'
 * 'LPASS_DISABLE_PINENTRY'
 * 'LPASS_ASKPASS'
 * 'LPASS_CLIPBOARD_COMMAND'
@@ -331,6 +338,10 @@ att-1426405543365295118-94690: travel-flight.pdf
 $ lpass show my-secure-note --attach att-1426405543365295118-94690
 "travel-flight.pdf" is a binary file, print it anyway (or save)?  [y/n/S] s
 Wrote 122864 bytes to "travel-flight.pdf"
+
+# Display secure note attachment to standard output
+$ lpass show my-secure-note --attach att-1426405543365295118-94690 --quiet
+[... binary data on stdout ...]
 
 # Add an account non-interactively by creating the proper template
 printf "Username: wizard97\nPassword: vJwhFfBBtn8hj4" | \

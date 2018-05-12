@@ -1,3 +1,30 @@
+# Version 1.3.0
+ * `lpass show` now supports `--json` format
+ * `lpass show` now supports `--quiet` flag to suppress prompts,
+   from Pau Sanchez
+ * `lpass import` has `--keep-dupes` flag which will preserve duplicate
+   accounts on import
+ * `LPASS_PINENTRY` environment variable may now be used to set custom
+   path to pinentry, from Martynas Mickevičius
+ * Build fix for aarch64 and others from Natanael Copa
+ * New fish completions from Israel Chauca Fuentes
+ * Zsh completions from Richard Hillmann
+ * Brew build instructions updates from Roger D. Winans
+ * bugfix: site notes now show up in notes textarea instead of fields
+ * spelling fixes from Josh Soref
+
+# Version 1.2.2
+ * `lpass ls --format` now supports "%al" to show URL, from Yikai Zhao
+ * $VISUAL can be used in preference to $EDITOR, from Wesley Schwengle
+ * `lpass edit` can now directly edit multiline ssh keys
+ * fields are now preserved when edited with `lpass edit`
+ * Bugfix: use-after-free in http.c fixed, from Björn Ketelaars
+ * Bugfix: command-line completion now works for names with spaces
+ * Bugfix: loading attachments from shared folders now works, from Spencer
+   Whyte
+ * Debian packing updates from Hannes Hörl
+ * Documentation updates from Darragh Grealish and Steven Liekens
+
 # Version 1.2.1
  * Bugfix: fix regression with ```lpass show``` not displaying all fields
    for secure notes
